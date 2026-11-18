@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Alux – Khảo sát & Báo giá</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Alux Khảo sát">
+<meta name="theme-color" content="#0f4c81">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<script src="cauhinh.js"></script>
+<style>
+#boot{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1d2733;max-width:420px;margin:0 auto;padding:28px 16px 40px;-webkit-text-size-adjust:100%}
+#boot *{box-sizing:border-box}
+#boot .lg{font-weight:900;font-size:26px;color:#0f4c81;text-align:center;letter-spacing:.5px;margin:18px 0 4px}
+#boot .sub{text-align:center;color:#6b7785;font-size:14px;margin-bottom:18px}
+#boot .cd{background:#fff;border:1px solid #dfe5ec;border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(15,76,129,.06)}
+#boot label{display:block;font-weight:700;font-size:14px;margin:10px 0 4px}
+#boot input{width:100%;font-size:18px;padding:12px;border:1.5px solid #c9d4e0;border-radius:12px;font-family:inherit;background:#fff}
+#boot input:focus{outline:none;border-color:#0f4c81}
+#boot button{font-family:inherit;cursor:pointer}
+#boot .bt{width:100%;margin-top:14px;padding:13px;border-radius:12px;border:0;background:#0f4c81;color:#fff;font-size:17px;font-weight:800}
+#boot .bt.gh{background:#eef3f8;color:#0f4c81;font-weight:700;font-size:15px}
+#boot .lk{background:none;border:0;color:#0f4c81;text-decoration:underline;font-size:14px;margin-top:12px;display:block;width:100%}
+#boot .ms{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.45}
+#boot .ms.er{background:#fdecec;color:#b42318}#boot .ms.ok{background:#ecf8f0;color:#1a7a43}#boot .ms.in{background:#eef3f8;color:#334}
+#boot .mu{color:#6b7785;font-size:13px;line-height:1.45}
+#boot .who{text-align:center;font-size:16px;margin-bottom:6px}
+#boot .chips{display:flex;gap:8px}#boot .chip{flex:1;padding:10px;border-radius:10px;border:1.5px solid #c9d4e0;background:#fff;font-size:14px;font-weight:700}
+#boot .chip.on{border-color:#0f4c81;background:#eef3f8;color:#0f4c81}
+#boot .sp{display:inline-block;width:16px;height:16px;border:2.5px solid #c9d4e0;border-top-color:#0f4c81;border-radius:50%;animation:bsp .8s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes bsp{to{transform:rotate(360deg)}}
+#boot .lock{font-size:40px;text-align:center}
+</style>
+</head>
+<body style="margin:0;background:#f3f6f9">
+<div id="boot"><div class="lg">ALUX · KHẢO SÁT</div><div class="sub">Khảo sát · đo · báo giá tại công trình</div><div id="bv" class="cd"><span class="sp"></span> Đang mở…</div></div>
+<script>
+window.SKEY = 'alux_khaosat_settings_v1';
+(function () {
+  const u = String(window.ALUX_GAS || '').trim();
+  window.ALUX_GAS_OK = /^https?:\/\/[^ ]+\/exec$/.test(u);
+  if (!window.ALUX_GAS_OK) return;
+  try { const o = JSON.parse(localStorage.getItem(window.SKEY) || '{}') || {}; if (o.gasUrl !== u) { o.gasUrl = u; localStorage.setItem(window.SKEY, JSON.stringify(o)); } } catch (e) { }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
+})();
+(function () {
+  const IS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+  const $ = s => document.querySelector(s), SKEY = window.SKEY;
+  const P = Storage.prototype, g0 = P.getItem, s0 = P.setItem, r0 = P.removeItem;
+  const lg = k => g0.call(localStorage, k), ls = (k, v) => s0.call(localStorage, k, v), lr = k => r0.call(localStorage, k);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const St = () => { try { return JSON.parse(lg(SKEY) || '{}') || {}; } catch (e) { return {}; } };
+  const saveSt = o => { try { ls(SKEY, JSON.stringify(o)); } catch (e) { } };
+  function call(fn, payload) {
+    const st = St(); payload = Object.assign({ token: st.token || '', pin: st.pin || '' }, payload || {});
+    if (IS_GAS) return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(e => rej(new Error(e && e.message || e)))[fn](payload));
+    const url = st.gasUrl || (location.origin + location.pathname);
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, payload }) }).then(r => r.json()).then(j => { if (!j.ok) throw new Error(j.error || 'Lỗi máy chủ'); return j; });
+  }
+  const errMsg = e => { const m = String(e && e.message || e); const i = m.indexOf('AUTH:'); return i >= 0 ? m.slice(i + 5).trim() : m; };
+  const te = new TextEncoder(), td = new TextDecoder();
+  const b64 = u => { const a = new Uint8Array(u); let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
+  const ub64 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+  const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+  async function kek(pin, salt) { const base = await crypto.subtle.importKey('raw', te.encode(String(pin)), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']); }
+  async function wrap(raw, pin) { const salt = rnd(16), iv = rnd(12), k = await kek(pin, salt); return { s: b64(salt), iv: b64(iv), w: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, raw)) }; }
+  async function unwrap(e, pin) { const k = await kek(pin, ub64(e.s)); return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ub64(e.iv) }, k, ub64(e.w))); }
+  const KRK = 'alux_ks_kr', DVK = 'alux_ks_dev';
+  const KR = () => { try { return JSON.parse(lg(KRK) || '{}') || {}; } catch (e) { return {}; } };
+  const saveKR = o => ls(KRK, JSON.stringify(o));
+  const DEV = (() => { let d = lg(DVK); if (!/^[A-Za-z0-9_-]{8,40}$/.test(d || '')) { d = b64(rnd(12)).replace(/[+/=]/g, 'x'); ls(DVK, d); } return d; })();
+  let RAW = null, KEY = null, KID = '';
+  async function escrow(uid) {
+    const kr = KR(); if (!kr[uid] || kr[uid].esc || !RAW) return;
+    try { await call('keyEscrow', { op: 'put', dev: DEV, k: b64(RAW) }); const k2 = KR(); if (k2[uid]) { k2[uid].esc = 1; saveKR(k2); } } catch (e) { }
+  }
+  const isAuth = x => String(x && x.message || x).indexOf('AUTH:') >= 0;
+  function askOld() {
+    return new Promise(res => {
+      show(`<div class="lock">🔑</div><div class="ms in">Mã PIN của bạn đã được đổi. Dữ liệu trên máy này đang khoá bằng <b>PIN cũ</b> – nhập PIN cũ để mở (chỉ cần 1 lần).</div>
+        <label>PIN cũ</label><input id="opPin" type="password" inputmode="numeric" maxlength="8"><div id="opErr"></div>
+        <button class="bt" id="opGo">Mở dữ liệu</button><button class="lk" id="opSkip">Không nhớ PIN cũ – bỏ qua (dữ liệu cũ trên máy sẽ không mở được, lấy lại từ bản sao lưu Drive)</button>`);
+      $('#opGo').onclick = async () => { try { res(await unwrap(KR()[KID0], $('#opPin').value.trim())); } catch (e) { $('#opErr').innerHTML = '<div class="ms er">PIN cũ không đúng</div>'; } };
+      $('#opSkip').onclick = () => res(null);
+    });
+  }
+  let KID0 = '';
+  async function unlock(uid, pin, verified) {
+    const kr = KR(), e = kr[uid]; let raw = null; KID0 = uid;
+    if (e) { try { raw = await unwrap(e, pin); } catch (x) { raw = null; } }
+    if (e && !raw) {
+      let r;
+      try { r = await call('keyEscrow', { op: 'get', dev: DEV, pin }); }
+      catch (x) { if (isAuth(x)) throw x; throw new Error(verified ? 'Cần có mạng để mở dữ liệu sau khi đổi PIN' : 'Sai mã PIN'); }
+      if (!r || !r.ok) throw new Error('Sai mã PIN');
+      if (r.k) raw = ub64(r.k); else { raw = await askOld(); if (!raw) raw = rnd(32); }
+      const k2 = KR(); k2[uid] = Object.assign(await wrap(raw, pin), { esc: r.k ? 1 : 0 }); saveKR(k2);
+    }
+    if (!e) {
+      let r = null;
+      try { r = await call('keyEscrow', { op: 'get', dev: DEV, pin }); } catch (x) { if (isAuth(x)) throw x; r = null; }
+      if (r && !r.ok) throw new Error('Sai mã PIN');
+      if (!r && !verified) {
+        const st = St();
+        if (!(st.pinV && st.pinV.uid === uid && st.pinV.salt)) throw new Error('Cần có mạng để mở lần đầu trên máy này');
+        let d = te.encode(st.pinV.salt + '|' + uid + '|' + pin); for (let i = 0; i < 2000; i++) d = new Uint8Array(await crypto.subtle.digest('SHA-256', d));
+        if ([...d].map(b => b.toString(16).padStart(2, '0')).join('') !== st.pinV.h) throw new Error('Sai mã PIN');
+      }
+      raw = r && r.k ? ub64(r.k) : rnd(32);
+      const k2 = KR(); k2[uid] = Object.assign(await wrap(raw, pin), { esc: r && r.k ? 1 : 0 }); saveKR(k2);
+    }
+    RAW = raw; KID = uid;
+    KEY = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+    escrow(uid); qSet();
+  }
+  async function enc(str) { const iv = rnd(12); return { i: iv, c: await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, KEY, te.encode(str)) }; }
+  async function dec(o) { return td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: o.i }, KEY, o.c)); }
+  async function encS(str) { const o = await enc(str); return 'ENC1:' + KID + ':' + b64(o.i) + ':' + b64(o.c); }
+  async function decS(s) { const a = String(s).split(':'); if (a[0] !== 'ENC1' || a.length !== 4 || a[1] !== KID) throw new Error('khoá khác'); return dec({ i: ub64(a[2]), c: ub64(a[3]) }); }
+  const SK = ['alux_khaosat_cat_v2', 'alux_ks_hem', 'alux_khaosat_mirror', 'alux_khaosat_evq', 'alux_ks_errlog'];
+  const MEM = {}, QT = {};
+  function q(k) { clearTimeout(QT[k]); QT[k] = setTimeout(async () => { try { if (MEM[k] == null) return; ls(k, await encS(MEM[k])); } catch (e) { } }, 400); }
+  async function shim() {
+    for (const k of SK) {
+      const v = lg(k); if (v == null) continue;
+      if (v.indexOf('ENC1:') === 0) { try { MEM[k] = await decS(v); } catch (e) { } }
+      else { MEM[k] = v; q(k); }
+    }
+    P.getItem = function (k) { if (this === localStorage && SK.indexOf(k) >= 0) return Object.prototype.hasOwnProperty.call(MEM, k) ? MEM[k] : null; return g0.call(this, k); };
+    P.setItem = function (k, v) { if (this === localStorage && SK.indexOf(k) >= 0) { MEM[k] = String(v); q(k); return; } return s0.call(this, k, v); };
+    P.removeItem = function (k) { if (this === localStorage && SK.indexOf(k) >= 0) { delete MEM[k]; clearTimeout(QT[k]); } return r0.call(this, k); };
+  }
+  window.__AE = { get kid() { return KID; }, enc, dec, encS, decS };
+  window.__ALB = {
+    dev: DEV,
+    check: async pin => { const e = KR()[KID]; if (!e) return null; try { await unwrap(e, pin); return true; } catch (x) { return false; } },
+    rewrap: async pin => { if (!RAW || !KID) return; const kr = KR(); kr[KID] = Object.assign(await wrap(RAW, pin), { esc: kr[KID] && kr[KID].esc ? 1 : 0 }); saveKR(kr); },
+    forget: () => qDel(KID),
+    relogin: async (uid, pin) => { if (uid !== KID) { await qDel(KID); location.reload(); return; } await window.__ALB.rewrap(pin); qSet(); }
+  };
+  function bdb() { return new Promise(res => { try { const q = indexedDB.open('alux_ks_boot', 1); q.onupgradeneeded = () => q.result.createObjectStore('b'); q.onsuccess = () => res(q.result); q.onerror = () => res(null); } catch (e) { res(null); } }); }
+  async function bGet() { const d = await bdb(); if (!d) return null; return new Promise(res => { try { const q = d.transaction('b', 'readonly').objectStore('b').get(KID); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch (e) { res(null); } }); }
+  async function qGet(uid) { const d = await bdb(); if (!d) return null; return new Promise(res => { try { const q = d.transaction('b', 'readonly').objectStore('b').get('q:' + uid); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); } catch (e) { res(null); } }); }
+  async function qSet() { try { const dk = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']), iv = rnd(12), c = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, dk, RAW); const d = await bdb(); if (d) d.transaction('b', 'readwrite').objectStore('b').put({ dk, iv, c }, 'q:' + KID); } catch (e) { } }
+  async function qDel(uid) { try { const d = await bdb(); if (!d) return; await new Promise(res => { const t = d.transaction('b', 'readwrite'); t.objectStore('b').delete('q:' + uid); t.oncomplete = t.onerror = t.onabort = () => res(); }); } catch (e) { } }
+  async function quick(uid) {
+    try {
+      const hb = JSON.parse(lg('alux_ks_hb') || 'null'); if (!hb || !(Date.now() - hb.at < 7 * 24 * 60 * 60000)) { await qDel(uid); return false; }
+      const q = await qGet(uid); if (!q || !q.dk) return false;
+      const raw = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: q.iv }, q.dk, q.c));
+      RAW = raw; KID = uid; KEY = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']); escrow(uid);
+      return true;
+    } catch (e) { return false; }
+  }
+  async function bPut(v) { const d = await bdb(); if (!d) return; try { d.transaction('b', 'readwrite').objectStore('b').put(v, KID); } catch (e) { } }
+  async function loadApp() {
+    show('<span class="sp"></span> Đang tải ứng dụng…');
+    let r, c = null; try { c = await bGet(); } catch (e) { c = null; }
+    try {
+      if (c && c.e && navigator.onLine === false) throw new Error('Không có mạng – mở bản đã lưu trên máy');
+      r = await (c && c.e ? Promise.race([call('appBundle', { h: c.h || '' }), new Promise((_, rej) => setTimeout(() => rej(new Error('Mạng chậm – mở bản đã lưu trên máy')), 20000))]) : call('appBundle', { h: '' }));
+      if (r.same && c) { try { r.html = await dec(c.e); } catch (e) { r = await call('appBundle', {}); } }
+      else if (r.html && r.h) { enc(r.html).then(e => bPut({ h: r.h, e })).catch(() => { }); }
+      if (!r.html) throw new Error('Không nhận được ứng dụng');
+    }
+    catch (e) { const m = String(e && e.message || e); if (m.indexOf('AUTH:') >= 0) { const st = St(); st.token = ''; saveSt(st); viewLogin(errMsg(e)); return; } let off = null; if (c && c.e) { try { off = await dec(c.e); } catch (x) { off = null; } } if (off) { r = { html: off }; window.__ALB_OFF = 1; } else { show('<div class="ms er">Không tải được ứng dụng: ' + esc(errMsg(e)) + '</div><button class="bt" id="bRetry">Thử lại</button>'); $('#bRetry').onclick = loadApp; return; } }
+    await shim();
+    const doc = new DOMParser().parseFromString(r.html, 'text/html');
+    doc.head.querySelectorAll('style, link[rel=stylesheet]').forEach(n => document.head.appendChild(document.importNode(n, true)));
+    document.body.removeAttribute('style'); document.body.innerHTML = '';
+    [...doc.body.attributes].forEach(a => document.body.setAttribute(a.name, a.value));
+    [...doc.body.childNodes].forEach(n => { if (n.nodeName !== 'SCRIPT') document.body.appendChild(document.importNode(n, true)); });
+    for (const sc of [...doc.querySelectorAll('script')]) {
+      const s = document.createElement('script');
+      if (sc.src) { s.src = sc.src; await new Promise(res => { s.onload = s.onerror = res; document.body.appendChild(s); }); }
+      else { s.textContent = sc.textContent; document.body.appendChild(s); }
+    }
+  }
+  function show(h) { const v = $('#bv'); if (v) v.innerHTML = h; }
+  function viewLogin(msg) {
+    const st = St();
+    show(`${IS_GAS || window.ALUX_GAS_OK ? '' : `<label>URL Web App</label><input id="lgUrl" value="${esc(st.gasUrl || '')}" placeholder="…/exec">`}
+      <label>Số điện thoại (hoặc tên)</label><input id="lgUser" autocomplete="username" value="${esc(st.lastUser || '')}" placeholder="09xxxxxxxx">
+      <label>Mã PIN</label><input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••••">
+      <div id="lgErr">${msg ? '<div class="ms er">' + esc(msg) + '</div>' : ''}</div>
+      <button class="bt" data-act="doLogin" id="bGo">Đăng nhập</button>
+      <button class="bt gh" id="bReg">🆕 Chưa có tài khoản? Đăng ký</button>
+      <div class="mu" style="margin-top:12px;text-align:center">Quên PIN: nhờ Quản trị đặt lại PIN trong app.</div>`);
+    const go1 = async () => {
+      const u = $('#lgUser').value.trim(), pin = $('#lgPin').value.trim(), er = $('#lgErr');
+      if (!IS_GAS && $('#lgUrl')) { const s2 = St(); s2.gasUrl = $('#lgUrl').value.trim(); saveSt(s2); }
+      if (!u || !pin) { er.innerHTML = '<div class="ms er">Nhập số điện thoại và mã PIN</div>'; return; }
+      er.innerHTML = '<div class="ms in"><span class="sp"></span>Đang đăng nhập…</div>';
+      try {
+        const r = await call('login', { user: u, pin });
+        const s2 = St(); Object.assign(s2, { token: r.token, user: r.user, lastUser: u, nguoiDo: r.user.name, loginRequired: true }); if ('byOpen' in r) s2.byOpen = !!r.byOpen; saveSt(s2);
+        er.innerHTML = '<div class="ms ok"><span class="sp"></span>Đang mở khoá dữ liệu trên máy…</div>';
+        await unlock(r.user.id, pin, true);
+        await loadApp();
+      } catch (e) { er.innerHTML = '<div class="ms er">' + esc(errMsg(e)) + '</div>'; }
+    };
+    $('#bGo').onclick = go1; $('#lgPin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go1(); } });
+    $('#bReg').onclick = viewReg;
+  }
+  function viewUnlock(msg) {
+    const st = St(), u = st.user || {};
+    show(`<div class="lock">🔒</div><div class="who"><b>${esc(u.name || '')}</b>${u.role ? ' · ' + esc(u.role) : ''}</div><div class="mu" style="text-align:center">Dữ liệu trên máy đã mã hoá – nhập PIN để mở</div>
+      <input id="lgUser" type="hidden" value="${esc(st.lastUser || '')}">
+      <label>Mã PIN</label><input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••••">
+      <div id="lgErr">${msg ? '<div class="ms er">' + esc(msg) + '</div>' : ''}</div>
+      <button class="bt" data-act="doLogin" id="bGo">🔓 Mở khoá</button>
+      <button class="lk" id="bOther">Đăng nhập tài khoản khác</button>`);
+    let fails = 0;
+    const go1 = async () => {
+      const pin = $('#lgPin').value.trim(), er = $('#lgErr'); if (!pin) return;
+      er.innerHTML = '<div class="ms in"><span class="sp"></span>Đang mở khoá…</div>';
+      try { await unlock(u.id, pin, false); await loadApp(); }
+      catch (e) { if (isAuth(e)) { const s2 = St(); s2.token = ''; saveSt(s2); viewLogin('Phiên đăng nhập đã hết hạn hoặc PIN đã được đổi – đăng nhập lại để mở dữ liệu'); return; } fails++; const pi = $('#lgPin'); if (!pi) { viewUnlock(errMsg(e)); return; } pi.value = ''; er.innerHTML = '<div class="ms er">' + esc(errMsg(e)) + (fails >= 5 ? ' – thử lại sau ít phút hoặc nhờ Quản trị đặt lại PIN' : '') + '</div>'; if (fails >= 5) { $('#bGo').disabled = true; setTimeout(() => { fails = 0; const b = $('#bGo'); if (b) b.disabled = false; }, 300000); } }
+    };
+    $('#bGo').onclick = go1; $('#lgPin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go1(); } });
+    $('#bOther').onclick = () => { const s2 = St(); s2.token = ''; s2.user = null; saveSt(s2); viewLogin(''); };
+    setTimeout(() => { const i = $('#lgPin'); if (i) i.focus(); }, 80);
+  }
+  function viewReg() {
+    let role = 'Kỹ thuật';
+    show(`<b style="font-size:17px">🆕 Đăng ký tài khoản</b><div class="mu">Gửi yêu cầu – Quản trị duyệt xong là đăng nhập được.</div>
+      <label>Họ tên</label><input id="rgName" autocomplete="name"><label>Số điện thoại</label><input id="rgPhone" inputmode="tel">
+      <label>Công việc</label><div class="chips"><button class="chip on" data-v="Kỹ thuật">Kỹ thuật (đo)</button><button class="chip" data-v="Sale">Sale</button></div>
+      <label>Mã PIN (4–8 số)</label><input id="rgPin" type="password" inputmode="numeric" maxlength="8"><label>Nhập lại PIN</label><input id="rgPin2" type="password" inputmode="numeric" maxlength="8">
+      <label>Ghi chú cho quản trị</label><input id="rgNote"><div id="rgErr"></div>
+      <button class="bt" id="rgGo">Gửi đăng ký</button><button class="lk" id="rgBack">‹ Quay lại đăng nhập</button>`);
+    document.querySelectorAll('#boot .chip').forEach(c => c.onclick = () => { document.querySelectorAll('#boot .chip').forEach(x => x.classList.remove('on')); c.classList.add('on'); role = c.dataset.v; });
+    $('#rgBack').onclick = () => viewLogin('');
+    $('#rgGo').onclick = async () => {
+      const v = id => ($('#' + id).value || '').trim(), er = $('#rgErr');
+      if (v('rgPin') !== v('rgPin2')) { er.innerHTML = '<div class="ms er">Hai lần nhập PIN không khớp</div>'; return; }
+      try { await call('register', { name: v('rgName'), phone: v('rgPhone'), pin: v('rgPin'), role, note: v('rgNote') }); const s2 = St(); s2.lastUser = v('rgPhone'); saveSt(s2); show('<div class="ms ok">✓ Đã gửi đăng ký. Khi Quản trị duyệt, đăng nhập bằng số điện thoại + PIN vừa đặt.</div><button class="bt" id="rgOk">Về đăng nhập</button>'); $('#rgOk').onclick = () => viewLogin(''); }
+      catch (e) { er.innerHTML = '<div class="ms er">' + esc(errMsg(e)) + '</div>'; }
+    };
+  }
+  if (!(window.crypto && crypto.subtle)) { show('<div class="ms er">Trình duyệt quá cũ, không hỗ trợ mã hoá. Hãy cập nhật Chrome / Safari.</div>'); return; }
+  const st0 = St(); if (st0.token && st0.user && st0.user.id) quick(st0.user.id).then(ok => { if (ok) loadApp(); else viewUnlock(''); }); else viewLogin('');
+})();
+</script>
+</body>
+</html>

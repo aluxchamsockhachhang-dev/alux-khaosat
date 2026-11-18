@@ -1,0 +1,1 @@
+window.ALUX_GAS = 'DAN_LINK_EXEC_VAO_DAY';
